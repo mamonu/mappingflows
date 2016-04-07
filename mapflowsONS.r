@@ -87,8 +87,9 @@ UKm <- get_map(location = c(-2.65, 53.7), source = 'stamen', maptype = "toner")
 #UK_map
 #(UK_map) 
 
-myplot <-  ggplot (destination.xy[which(destination.xy$trips>25),],aes(oX,oY)) +
+  myplot <- ggmap(UKm) + ggplot (destination.xy[which(destination.xy$trips>25),],aes(oX,oY)) +
           # ggmap(UKm) + coord_map()+
+  
   
   
   geom_polygon(data=fGBshape, aes(x = long, y = lat, group = group))+
@@ -101,7 +102,7 @@ myplot <-  ggplot (destination.xy[which(destination.xy$trips>25),],aes(oX,oY)) +
   theme (panel.background= element_rect(fill='grey40'))+ 
   quiet + coord_equal()
 
-myplot
+print(myplot, newpage = FALSE)
 
 ggsave(myplot, file="sample3nodots.jpg", scale=3, dpi = 600)
 
