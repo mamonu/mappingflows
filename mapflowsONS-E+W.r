@@ -2,31 +2,27 @@ library(plyr)
 library(ggplot2)
 library(sp)
 library(maptools)
-#library(threejs)
 library(reshape2)
 library(rgdal)
 library(rgeos)
 library(ggmap)
 
 
-#library(tools)
-#write_PACKAGES("~/scripts/mappingflows/")
-
-
-
-#delete everything... start with a clean slate:
+#delete everything in the environment... start with a clean slate:
 rm(list=ls())
+
+
+#declare the current working directory
 
 setwd("~/scripts/mappingflows/")
 
-#GBshapefiledir <- "~/scripts/mappingflows/CTRY_DEC_2013_GB_BGC.shp"
-
+#read the shapefile 
 #GBshape <- readOGR(dsn=".",layer="CTRY_DEC_2013_GB_BGC")
 EWshape <- readOGR(dsn=".",layer="CTRY_DEC_2013_EW_BGC")
-#UK is EPSG27700
-
-
+# make the shapefile easily plottable with ggplot with fortify()
 fEWshape <- fortify(EWshape)
+
+
 #load the matrix, careful to have stringsAsFactors as FALSE
 
 df<-read.csv("RMatrixsEW.csv",header = F,stringsAsFactors = F)
@@ -35,16 +31,59 @@ colnames(df)<-df[1,]    # msoa  codes as columns
 df = df[-1,]            # delete  first row
 df = df[,-1]            # delete  first column 
 
+##### matrix operations for the net matrix
 
-# tranform it to edgelist of the form origin,destination, total number of trips
-input <- melt(as.matrix(df))
+tdf <- t(df)    # from trip matrix of type dataframe to transposed matrix (of type matrix)  
+ddf <- t(tdf)   # the transose of the transposed matrix (so the original matrix) in type matrix
+class (tdf) <- "numeric"     # make sure that what is in the matrix is numeric
+class (ddf) <- "numeric"     # make sure that what is in the matrix is numeric
 
-# name columns created by melt
+# in order to create net matrix subtract transposed lower tri from upper matrix 
+netmatrix <- ddf - tdf  
+ 
+#put 0 to lower submatrix including diagonal
+netmatrix[lower.tri(netmatrix,diag=TRUE)] <- 0
+
+#######end of net matrix operations###
+
+######### now decide on the input matrix ####################
+# and tranform it to an edgelist of the form origin,destination, total number of trips
+
+# case 1 : the net matrix 
+
+input <- melt(netmatrix)
+
+# case 2 : the whole matrix
+mdf <-as.matrix(df)
+class (mdf) <- "numeric" 
+input <- melt(mdf)
+
+# case 3:  only the top sub-matrix
+udf <-as.matrix(df)
+class (udf) <- "numeric" 
+udf[lower.tri(udf,diag=TRUE)] <- 0
+input <- melt(udf)
+  
+# case 4:  only the lower submatrix
+ldf <-as.matrix(df)
+class (ldf) <- "numeric" 
+ldf[!lower.tri(ldf,diag=TRUE)] <- 0
+input <- melt(ldf)
+
+
+# certain sanity checks
+# name columns created by melt 
 names(input) <- c("origin","destination","total")
 
+#make sure origin & destination are strings and total is numeric
+input$origin <- as.character(input$origin)
+input$destination <- as.character(input$destination)
+input$total <- as.numeric(input$total)
+
+
+#############end of input selected#######################
 
 #load centroid data,
-
 centroids <- read.csv ("MSOA_based_LAD_PWCs.csv",header = T,stringsAsFactors = F)
 
 
@@ -77,39 +116,37 @@ destination.xy$trips <- as.numeric(destination.xy$trips)
 #time for ggplot
 
 
-#the following 3 lines remove the 
+#the following 3 lines remove the gridlines in the map. 
 
 xquiet <- scale_x_continuous("",breaks=NULL)
 yquiet <- scale_y_continuous("",breaks=NULL)
 quiet <-list(xquiet,yquiet)
 
-#UKm <- get_map(location = c(-2.65, 53.7), source = 'stamen', maptype = "toner")
 
 
-#UK_map
-#(UK_map) 
-
-  myplot <-  ggplot (destination.xy[which(destination.xy$trips>25),],aes(oX,oY)) +
-          # ggmap(UKm) + coord_map()+
+  myplot <-  ggplot (destination.xy[which(destination.xy$trips>10),],aes(oX,oY)) +
   
-  stat_density2d(aes(x=oX,y=oY,fill=trips,alpha=trips/2),size=2,bins=4,geom="polygon")  +
+  geom_polygon(data=fEWshape,fill="black",colour="grey20",aes(x = long, y = lat, group = group))+
   
-  geom_polygon(data=fEWshape, aes(x = long, y = lat, group = group))+
-  
-  geom_segment(size = 0.1,aes(x=oX,y=oY,xend=dX,yend=dY,alpha=(trips)),col="white") +
+  geom_segment(size = 0.5,aes(x=oX,y=oY,xend=dX,yend=dY,alpha=(trips)),col="#7895f0") +
+    
+    
+  #green #80be2c                pink #f5d6d6              #blue  #7895f0
     
 
-  scale_alpha_continuous(range=c(0.03,0.63)) +
-  #geom_point(data=destination.xy,size = 0.1, aes(x=oX, y=oY, color="red"))+
-#  geom_text(data=destination.xy,size = 0.5,
+  scale_alpha_continuous(range=c(0.03,0.33)) +
+#  geom_point(data=destination.xy,size = 0.1, aes(x=oX, y=oY, color="red"))+    #plot points option
+#  geom_text(data=destination.xy,size = 0.5,colour="white"  ,                      #plot names option
 #            aes(label = o_name))+
+
   guides(color="none",alpha="none") +
-  theme (panel.background= element_rect(fill='grey40'))+ 
+    
+  theme (panel.background= element_rect(fill='black'))+ 
   quiet + coord_equal()
 
   myplot
   
-  #print(myplot, newpage = FALSE)
 
-ggsave(myplot, file="sampleEW2.jpg", scale=3, dpi = 600)
+
+ggsave(myplot, file="sampleEW-up-cols.pdf", scale=2, dpi = 600)
 
