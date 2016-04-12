@@ -52,7 +52,23 @@ netmatrix[lower.tri(netmatrix,diag=TRUE)] <- 0
 
 # case 1 : the net matrix 
 
-input <- melt(netmatrix)
+ainput <- melt(netmatrix)
+
+negs <- filter(ainput,ainput$value<0)
+poss <- filter(ainput,ainput$value>=0)
+
+nonegs<-negs
+
+nonegs$Var1 <- negs$Var2
+nonegs$Var2 <- negs$Var1
+nonegs$value <- abs(negs$value)
+
+input <- rbind(poss,nonegs)
+
+
+
+
+
 
 # case 2 : the whole matrix
 mdf <-as.matrix(df)
@@ -124,11 +140,14 @@ yquiet <- scale_y_continuous("",breaks=NULL)
 quiet <-list(xquiet,yquiet)
 
 
+colfunc <- colorRampPalette(c("green", "red"))
 
-destination_gg <- destination.xy %>% filter(abs(trips)>1) %>%
-  mutate(trips = pmin(pmax(trips, -15), 15)) %>%
+
+
+
+destination_gg <- destination.xy %>% filter(trips>1) %>%
+  
   arrange(abs(trips))
-
 
 
 
@@ -137,19 +156,14 @@ destination_gg <- destination.xy %>% filter(abs(trips)>1) %>%
   
   geom_polygon(data=fEWshape,fill="black",colour="grey20",aes(x = long, y = lat, group = group))+
   
-  geom_segment(size = 0.1,aes(x=oX,y=oY,xend=dX,yend=dY,colour=trips,alpha=abs(trips))) +
-    
-    
+    geom_segment(size = 0.1,aes(x=oX,y=oY,xend=dX,yend=dY,colour=trips,alpha=(trips))) +
+    geom_point(size = 0.2, aes(x=dX, y=dY, color=(trips)))+ 
+    #geom_point(size = 0.1, aes(x=oX, y=oY, color=(1/trips)))+ 
+    geom_segment( arrow=arrow(length=unit(0.1,"cm")),size = 1,aes(x=oX,y=oY,xend=dX,yend=dY,colour=trips,alpha=(trips))) + 
   #green #80be2c                pink #f5d6d6              #blue  #7895f0
     
-
+ 
   scale_alpha_continuous(range=c(0.03,0.33)) +
-    
-  scale_color_gradient2(low="#80be2c",high="#7895f0",mid="black",midpoint=0)+
-    
-#  geom_point(data=destination.xy,size = 0.1, aes(x=oX, y=oY, color="red"))+    #plot points option
-#  geom_text(data=destination.xy,size = 0.5,colour="white"  ,                      #plot names option
-#            aes(label = o_name))+
 
   guides(color="none",alpha="none") +
     
@@ -160,5 +174,5 @@ destination_gg <- destination.xy %>% filter(abs(trips)>1) %>%
   
 
 
-ggsave(myplot, file="sampleEW-net-cols.pdf", scale=3, dpi = 600)
+ggsave(myplot, file="sampleEW-net-Blue3.pdf", scale=3, dpi = 600)
 
