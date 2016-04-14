@@ -50,9 +50,6 @@ netmatrix[lower.tri(netmatrix,diag=TRUE)] <- 0
 ######### now decide on the input matrix ####################
 # and tranform it to an edgelist of the form origin,destination, total number of trips
 
-# case 1 : the net matrix 
-
-input <- melt(netmatrix)
 
 # case 2 : the whole matrix
 mdf <-as.matrix(df)
@@ -126,7 +123,7 @@ quiet <-list(xquiet,yquiet)
 
 
 destination_gg <- destination.xy %>% filter(abs(trips)>1) %>%
-  mutate(trips = pmin(pmax(trips, -15), 15)) %>%
+ # mutate(trips = pmin(pmax(trips, -60), 60)) %>%
   arrange(abs(trips))
 
 
@@ -137,7 +134,7 @@ destination_gg <- destination.xy %>% filter(abs(trips)>1) %>%
   
   geom_polygon(data=fEWshape,fill="black",colour="grey20",aes(x = long, y = lat, group = group))+
   
-  geom_segment(size = 0.1,aes(x=oX,y=oY,xend=dX,yend=dY,colour=trips,alpha=abs(trips))) +
+  geom_segment(size = 0.15,aes(x=oX,y=oY,xend=dX,yend=dY,alpha=(trips)),color="#80be2c") +
     
     
   #green #80be2c                pink #f5d6d6              #blue  #7895f0
@@ -145,9 +142,9 @@ destination_gg <- destination.xy %>% filter(abs(trips)>1) %>%
 
   scale_alpha_continuous(range=c(0.03,0.33)) +
     
-  scale_color_gradient2(low="#80be2c",high="#7895f0",mid="black",midpoint=0)+
+  #scale_color_gradient2(low="#80be2c",high="#7895f0",mid="black",midpoint=0)+
     
-#  geom_point(data=destination.xy,size = 0.1, aes(x=oX, y=oY, color="red"))+    #plot points option
+  #geom_point(data=destination.xy,size = 0.1, aes(x=dX, y=dY,size=(trips), color="white"))+    #plot points option
 #  geom_text(data=destination.xy,size = 0.5,colour="white"  ,                      #plot names option
 #            aes(label = o_name))+
 
